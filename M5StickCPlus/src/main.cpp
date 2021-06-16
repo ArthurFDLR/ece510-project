@@ -1,38 +1,9 @@
-/*
-#include "M5StickCPlus.h"
-#include <WiFi.h>
-
-char* ssid       = "TP-Link_AF58";
-char* password   = "74179510";
-
-void setup() {
-    M5.begin(true, true, true);
-    Serial.begin(115200);
-    Serial.printf("Connecting to %s ", ssid);
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println(" CONNECTED");
-}
-
-void loop() {
-}
-
-*/
-
-
 #include <M5StickCPlus.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 
+// WIFI & MQTT configuration
 #include "config.h"
-
-//WIFI
-const char* ssid = WIFI_SSID;
-const char* password = WIFI_PASSWD;
-const char* mqtt_server = MQTT_SERVER;
 
 //MQTT client
 WiFiClient espClient;
@@ -54,10 +25,10 @@ void setup_wifi() {
   // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
-  Serial.println(ssid);
+  Serial.println(WIFI_SSID);
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWD);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -143,7 +114,7 @@ void setup() {
   Serial.begin(115200);
   
   setup_wifi();
-  client.setServer(mqtt_server, 1883);
+  client.setServer(MQTT_SERVER, 1883);
   client.setCallback(callback);
 
   pinMode(BUTTON_A_PIN, INPUT);
