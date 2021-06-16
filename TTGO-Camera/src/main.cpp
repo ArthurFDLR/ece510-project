@@ -52,9 +52,8 @@
 /***************************************
  *  WiFi
  **************************************/
-#define WIFI_SSID   "FakeWifiHotspot"
-#define WIFI_PASSWD "password"
 
+#include "config.h"
 
 //#include "select_pins.h"
 
