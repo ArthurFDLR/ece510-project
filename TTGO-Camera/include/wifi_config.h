@@ -1,0 +1,2 @@
+#define WIFI_SSID "SSID"
+#define WIFI_PASSWD "PASSWD"

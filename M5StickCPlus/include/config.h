@@ -1,3 +1,3 @@
 #define WIFI_SSID "TP-Link_AF58"
-#define WIFI_PASSWD "Password"
+#define WIFI_PASSWD "74179510"
 #define MQTT_SERVER "192.168.0.151"
