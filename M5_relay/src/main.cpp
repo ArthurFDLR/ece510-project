@@ -2,6 +2,9 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
+// SYSTEM CONTROL PIN
+#define LAMP_PIN 26
+
 // WIFI & MQTT configuration
 #include "config.h"
 
@@ -12,8 +15,7 @@ unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE	(50)
 char msg[MSG_BUFFER_SIZE];
 
-bool StateWerkplaats = false;
-bool StateSpace = false;
+bool LampState = false;
 
 int counter(0);
 
@@ -26,8 +28,6 @@ void setup_wifi() {
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(WIFI_SSID);
-
-  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWD);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -44,35 +44,27 @@ void setup_wifi() {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
+  Serial.print("Message arrived on the topic : ");
   Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
   Serial.println();
-  
-  if (strcmp(topic,"tkkrlab/werkplaats/state") == 0) {
-
-    // Switch on the LED if an 1 was received as first character
-    if ((char)payload[0] == '1') {
-      Serial.println("Werkplaats Turn space open.");
-      StateWerkplaats = true;
-    } else {
-      Serial.println("Werkplaats Turn space closed.");  
-      StateWerkplaats = false;
-    }
-  };
-
-  if ( strcmp(topic,"tkkrlab/spacestate") == 0) {
-      // Switch on the LED if an 1 was received as first character
+  if (strcmp(topic,"lamp") == 0) {
       if ((char)payload[0] == '1') {
-        Serial.println("Space Turn space open.");
-        StateSpace = true;
+      Serial.println("Switch on the lamp");
+      LampState = true;
+      digitalWrite(LAMP_PIN, HIGH);
+    } else if ((char)payload[0] == '2') {
+      Serial.println("Switch the lamp");
+      if (LampState) {
+        digitalWrite(LAMP_PIN, LOW);
       } else {
-        Serial.println("Space Turn space closed.");    
-        StateSpace = false;
+        digitalWrite(LAMP_PIN, HIGH);
       }
+      LampState = !LampState;
+    } else {
+      Serial.println("Switch off the lamp");  
+      LampState = false;
+      digitalWrite(LAMP_PIN, LOW);
+    } 
   }
   
   displayStatus();
@@ -83,13 +75,11 @@ void reconnect() {
   while (!client.connected()) {
 
     Serial.print("Attempting MQTT connection...");
-    String clientId = "MQTT_Werkplaats";
+    String clientId = "MQTT_client_M5";
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
       Serial.println("connected");
-      client.subscribe("tkkrlab/werkplaats/state");
-      client.subscribe("tkkrlab/spacestate");
-
+      client.subscribe("lamp");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -102,22 +92,25 @@ void reconnect() {
 
 void setup() {
 
-  M5.begin();
-  M5.Lcd.setRotation(1);
-  
-  M5.Lcd.fillScreen(BLACK);
-  M5.Lcd.setCursor(15, 10);
-  M5.Lcd.setTextColor(WHITE);
-  M5.Lcd.setTextSize(5);
-  M5.Lcd.printf("MQTT \ncounter");
-    
-  Serial.begin(115200);
-  
-  setup_wifi();
-  client.setServer(MQTT_SERVER, 1883);
-  client.setCallback(callback);
+M5.begin();
 
-  pinMode(BUTTON_A_PIN, INPUT);
+// Initialize the screen
+M5.Lcd.setRotation(1);
+M5.Lcd.fillScreen(BLACK);
+M5.Lcd.setCursor(15, 10);
+M5.Lcd.setTextColor(WHITE);
+M5.Lcd.setTextSize(5);
+M5.Lcd.printf("LAMP \nCONTROLLER");
+
+Serial.begin(115200);
+
+setup_wifi();
+client.setServer(MQTT_SERVER, 1883);
+client.setCallback(callback);
+
+// Innitialize the pins
+pinMode(BUTTON_A_PIN, INPUT);
+pinMode(LAMP_PIN, OUTPUT);
 }
 
 void loop() {
@@ -127,6 +120,9 @@ void loop() {
   }
   client.loop();
 
+  
+
+  // test the publish function
   if(digitalRead(BUTTON_A_PIN) == 0) {
     char counter_str[5];
     client.publish("esp32", itoa(counter,counter_str,10));
@@ -141,34 +137,19 @@ void loop() {
 }
 
 void displayStatus() {
-  if (StateWerkplaats) {
-    // Werkplaats open 
+  if (LampState) {
+    // Lamp is on
     M5.Lcd.fillScreen(GREEN); //GREEN
     M5.Lcd.setCursor(18, 10);
     M5.Lcd.setTextColor(BLACK);
     M5.Lcd.setTextSize(5);
-    M5.Lcd.printf("OPEN");
+    M5.Lcd.printf("ON");
   } else {
-    // werkplaats gesloten
+    // Lamp is off
     M5.Lcd.fillScreen(RED);
     M5.Lcd.setCursor(7, 14);
     M5.Lcd.setTextColor(0xFFE0); //yellow
     M5.Lcd.setTextSize(4);
-    M5.Lcd.printf("CLOSED");     
+    M5.Lcd.printf("OFF");     
   }
-
-  if (StateSpace) {
-    M5.Lcd.fillRect(0, 60, 160, 30, GREEN);
-    M5.Lcd.setCursor(20, 63);
-    M5.Lcd.setTextSize(2);
-    M5.Lcd.setTextColor(BLACK);
-    M5.Lcd.printf("SPACE OPEN");
-  } else {
-    M5.Lcd.fillRect(0, 60, 160, 30, RED);
-    M5.Lcd.setCursor(10, 63);
-    M5.Lcd.setTextSize(2);
-    M5.Lcd.setTextColor(0xFFE0); 
-    M5.Lcd.printf("SPACE CLOSED");     
-  }
-    
 }
