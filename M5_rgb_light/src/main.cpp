@@ -2,6 +2,30 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
+/** JSON RGB light state information
+  {
+   "brightness": 255,
+   "color_mode": "rgb",
+   "color_temp": 155,
+   "color": {
+     "r": 255,
+     "g": 180,
+     "b": 200,
+     "c": 100,
+     "w": 50,
+     "x": 0.406,
+     "y": 0.301,
+     "h": 344.0,
+     "s": 29.412
+  },
+   "effect": "colorloop",
+   "state": "ON",
+   "transition": 2,
+   "white_value": 150
+  }
+
+*/
+
 // SYSTEM CONTROL PIN
 #define LAMP_PIN 26
 

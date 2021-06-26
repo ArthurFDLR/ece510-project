@@ -2,24 +2,31 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-// SYSTEM CONTROL PIN
-#define LAMP_PIN 26
-
-// WIFI & MQTT configuration
+// configuration
 #include "config.h"
 
-//MQTT client
+// MQTT client
 WiFiClient espClient;
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE	(50)
 char msg[MSG_BUFFER_SIZE];
 
-bool LampState = false;
+bool relay_state = false;
 
 int counter(0);
 
 void displayStatus();
+
+// function called to publish the state of the light (on/off)
+void publishRelayState() {
+  if (relay_state) {
+    client.publish(MQTT_LIGHT_STATE_TOPIC, MQTT_PAYLOAD_ON, true);
+  } else {
+    client.publish(MQTT_LIGHT_STATE_TOPIC, MQTT_PAYLOAD_OFF, true);
+  }
+}
+
 
 void setup_wifi() {
 
@@ -47,23 +54,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived on the topic : ");
   Serial.print(topic);
   Serial.println();
+  // concat the payload into a string
+  String payload_str;
+  for (uint8_t i = 0; i < length; i++) {
+    payload_str.concat((char)payload[i]);
+  }
   if (strcmp(topic,"lamp") == 0) {
-      if ((char)payload[0] == '1') {
+      if (payload_str.equals(String(MQTT_PAYLOAD_ON))) {
       Serial.println("Switch on the lamp");
-      LampState = true;
-      digitalWrite(LAMP_PIN, HIGH);
-    } else if ((char)payload[0] == '2') {
-      Serial.println("Switch the lamp");
-      if (LampState) {
-        digitalWrite(LAMP_PIN, LOW);
-      } else {
-        digitalWrite(LAMP_PIN, HIGH);
-      }
-      LampState = !LampState;
-    } else {
-      Serial.println("Switch off the lamp");  
-      LampState = false;
-      digitalWrite(LAMP_PIN, LOW);
+      relay_state = true;
+      digitalWrite(RELAY_PIN, HIGH);
+      publishRelayState();
+    } else if (payload_str.equals(String(MQTT_PAYLOAD_OFF))) {
+      Serial.println("Switch off the lamp");
+      relay_state = false;
+      digitalWrite(RELAY_PIN, LOW);
+      publishRelayState();
     } 
   }
   
@@ -79,7 +85,8 @@ void reconnect() {
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
       Serial.println("connected");
-      client.subscribe("lamp");
+      client.subscribe(MQTT_LIGHT_COMMAND_TOPIC);
+      publishRelayState();
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -100,7 +107,7 @@ M5.Lcd.fillScreen(BLACK);
 M5.Lcd.setCursor(15, 10);
 M5.Lcd.setTextColor(WHITE);
 M5.Lcd.setTextSize(5);
-M5.Lcd.printf("LAMP \nCONTROLLER");
+M5.Lcd.printf("RELAY \nCONTROLLER");
 
 Serial.begin(115200);
 
@@ -108,9 +115,9 @@ setup_wifi();
 client.setServer(MQTT_SERVER, 1883);
 client.setCallback(callback);
 
-// Innitialize the pins
+// Initialize the pins
 pinMode(BUTTON_A_PIN, INPUT);
-pinMode(LAMP_PIN, OUTPUT);
+pinMode(RELAY_PIN, OUTPUT);
 }
 
 void loop() {
@@ -119,8 +126,6 @@ void loop() {
     reconnect();
   }
   client.loop();
-
-  
 
   // test the publish function
   if(digitalRead(BUTTON_A_PIN) == 0) {
@@ -137,15 +142,15 @@ void loop() {
 }
 
 void displayStatus() {
-  if (LampState) {
-    // Lamp is on
+  if (relay_state) {
+    // relay is on
     M5.Lcd.fillScreen(GREEN); //GREEN
     M5.Lcd.setCursor(18, 10);
     M5.Lcd.setTextColor(BLACK);
     M5.Lcd.setTextSize(5);
     M5.Lcd.printf("ON");
   } else {
-    // Lamp is off
+    // relay is off
     M5.Lcd.fillScreen(RED);
     M5.Lcd.setCursor(7, 14);
     M5.Lcd.setTextColor(0xFFE0); //yellow
