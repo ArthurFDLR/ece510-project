@@ -1,6 +1,3 @@
-[submodule "pubsubclient"]
-	path = pubsubclient
-	url = https://github.com/knolleary/pubsubclient/
 [submodule "M5_relay/lib/pubsubclient"]
 	path = M5_relay/lib/pubsubclient
 	url = https://github.com/knolleary/pubsubclient/
