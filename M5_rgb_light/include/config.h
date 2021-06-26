@@ -1,0 +1,3 @@
+#define WIFI_SSID "SSID"
+#define WIFI_PASSWD "PASSWD"
+#define MQTT_SERVER "192.168.0.151"
