@@ -35,6 +35,13 @@ void setup_wifi() {
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(WIFI_SSID);
+  M5.Lcd.setRotation(1);
+  M5.Lcd.fillScreen(BLACK);
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextColor(WHITE);
+  M5.Lcd.setTextSize(5);
+  M5.Lcd.printf("Connect ");
+  M5.Lcd.println(WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWD);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -48,18 +55,24 @@ void setup_wifi() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+  M5.Lcd.fillScreen(BLACK);
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.setTextColor(WHITE);
+  M5.Lcd.setTextSize(5);
+  M5.Lcd.printf("Connected");
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived on the topic : ");
   Serial.print(topic);
   Serial.println();
+
   // concat the payload into a string
   String payload_str;
   for (uint8_t i = 0; i < length; i++) {
     payload_str.concat((char)payload[i]);
   }
-  if (strcmp(topic,"lamp") == 0) {
+  if (strcmp(topic,MQTT_LIGHT_COMMAND_TOPIC) == 0) {
       if (payload_str.equals(String(MQTT_PAYLOAD_ON))) {
       Serial.println("Switch on the lamp");
       relay_state = true;
@@ -90,7 +103,7 @@ void reconnect() {
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+      Serial.println("try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
     }
