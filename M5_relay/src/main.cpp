@@ -13,17 +13,29 @@ unsigned long lastMsg = 0;
 char msg[MSG_BUFFER_SIZE];
 
 bool relay_state = false;
+unsigned long target_time = 0L;
+
+
 
 int counter(0);
 
 void displayStatus();
 
-// function called to publish the state of the light (on/off)
+// function called to publish the state of the relay (on/off)
 void publishRelayState() {
   if (relay_state) {
-    client.publish(MQTT_LIGHT_STATE_TOPIC, MQTT_PAYLOAD_ON, true);
+    client.publish(MQTT_M5_STATE_TOPIC, MQTT_PAYLOAD_ON, true);
   } else {
-    client.publish(MQTT_LIGHT_STATE_TOPIC, MQTT_PAYLOAD_OFF, true);
+    client.publish(MQTT_M5_STATE_TOPIC, MQTT_PAYLOAD_OFF, true);
+  }
+}
+
+// function called to publish if the M5 is available or not
+void publishRelayAvailability(bool available) {
+  if (available) {
+    client.publish(MQTT_M5_STATE_TOPIC, MQTT_DEVICE_AVAILABLE, true);
+  } else {
+    client.publish(MQTT_M5_STATE_TOPIC, MQTT_DEVICE_UNAVAILABLE, true);
   }
 }
 
@@ -72,7 +84,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   for (uint8_t i = 0; i < length; i++) {
     payload_str.concat((char)payload[i]);
   }
-  if (strcmp(topic,MQTT_LIGHT_COMMAND_TOPIC) == 0) {
+  if (strcmp(topic,MQTT_M5_COMMAND_TOPIC) == 0) {
       if (payload_str.equals(String(MQTT_PAYLOAD_ON))) {
       Serial.println("Switch on the lamp");
       relay_state = true;
@@ -98,8 +110,9 @@ void reconnect() {
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
       Serial.println("connected");
-      client.subscribe(MQTT_LIGHT_COMMAND_TOPIC);
+      client.subscribe(MQTT_M5_COMMAND_TOPIC);
       publishRelayState();
+      publishRelayAvailability(true);
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -126,6 +139,7 @@ Serial.begin(115200);
 
 setup_wifi();
 client.setServer(MQTT_SERVER, 1883);
+publishRelayAvailability(true);
 client.setCallback(callback);
 
 // Initialize the pins
@@ -140,18 +154,12 @@ void loop() {
   }
   client.loop();
 
-  // test the publish function
-  if(digitalRead(BUTTON_A_PIN) == 0) {
-    char counter_str[5];
-    client.publish("esp32", itoa(counter,counter_str,10));
-    Serial.print("IP: ");
-    Serial.print(MQTT_SERVER);
-    Serial.print("\tTopic: ");
-    Serial.print("esp32\t Message: ");
-    Serial.println(counter);
-    counter += 1;
-    delay(500); 
-  };
+  if (millis() - target_time >= TIME_INTERVAL_AVAILABILITY_MSG) 
+  {
+   target_time += TIME_INTERVAL_AVAILABILITY_MSG;
+   publishRelayAvailability(true);
+  }
+
 }
 
 void displayStatus() {
