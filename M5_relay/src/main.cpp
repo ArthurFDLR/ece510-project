@@ -153,7 +153,11 @@ setup_wifi();
 
 // Initialize the MQTT server address and port
 client.setServer(MQTT_SERVER, 1883);
+
+// The M5 is now available
 publishRelayAvailability(true);
+
+// Each time an MQTT message arrives, execute callback
 client.setCallback(callback);
 
 // Initialize the pins
