@@ -1,18 +1,21 @@
 #include <M5StickCPlus.h>
 #include <WiFi.h>
+// Open source MQTT Library
 #include <PubSubClient.h>
 
-// configuration
+// Configuration
 #include "config.h"
 
 // MQTT client
 WiFiClient espClient;
 PubSubClient client(espClient);
-unsigned long lastMsg = 0;
-#define MSG_BUFFER_SIZE	(50)
-char msg[MSG_BUFFER_SIZE];
 
+unsigned long lastMsg = 0;
+
+// State of the relay on or off
 bool relay_state = false;
+
+// Keep track of time to send regular availability messages
 unsigned long target_time = 0L;
 
 
@@ -43,10 +46,13 @@ void publishRelayAvailability(bool available) {
 void setup_wifi() {
 
   delay(10);
-  // We start by connecting to a WiFi network
+  
+  // Print to serial monitor
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(WIFI_SSID);
+
+  // Initialize the screen and print wifi state
   M5.Lcd.setRotation(1);
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setCursor(0, 0);
@@ -54,8 +60,11 @@ void setup_wifi() {
   M5.Lcd.setTextSize(5);
   M5.Lcd.printf("Connect ");
   M5.Lcd.println(WIFI_SSID);
+
+  // We start by connecting to a WiFi network
   WiFi.begin(WIFI_SSID, WIFI_PASSWD);
 
+  // While not connected to the Wifi network print dots
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");  
@@ -63,6 +72,7 @@ void setup_wifi() {
 
   randomSeed(micros());
 
+  // Indicates that the device is connected
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
@@ -125,6 +135,7 @@ void reconnect() {
 
 void setup() {
 
+// Initialize M5
 M5.begin();
 
 // Initialize the screen
@@ -137,7 +148,10 @@ M5.Lcd.printf("RELAY \nCONTROLLER");
 
 Serial.begin(115200);
 
+// Initialize WiFi
 setup_wifi();
+
+// Initialize the MQTT server address and port
 client.setServer(MQTT_SERVER, 1883);
 publishRelayAvailability(true);
 client.setCallback(callback);
@@ -154,6 +168,7 @@ void loop() {
   }
   client.loop();
 
+  // Send Availability msg at every intervals
   if (millis() - target_time >= TIME_INTERVAL_AVAILABILITY_MSG) 
   {
    target_time += TIME_INTERVAL_AVAILABILITY_MSG;

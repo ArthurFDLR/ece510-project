@@ -1,8 +1,8 @@
 // Wifi configuration
 #define WIFI_SSID "TP-Link_AF58"
 #define WIFI_PASSWD "74179510"
-// MQTT configuration
 
+// MQTT configuration
 #define MQTT_SERVER "192.168.0.151"
 
 // State
